@@ -11,6 +11,9 @@
  
  class el_content_type{
  	
+	//version of this content type class
+	private static $version = "1.0.0"; 
+	
 	//instance of the class
 	private static $instance = null;
 
@@ -26,6 +29,7 @@
 	public function __construct($post_type_args = null, $meta_box_args = null, $meta_field_args = null, $taxonomy_args = null, $taxonomy_field_args = null){
 			
 		//TODO: Going to need to create HUGE default arrays to hold options, these can be overridden for each post type	
+		
 		
 		$this->set_post_type_args($post_type_args);
 		$this->set_meta_box_args($meta_box_args);
@@ -51,8 +55,28 @@
 			
 		}
 	
+		//filter default arguments (triggered early before anything else runs);
+		add_action('init', array($this,'filter_default_class_arguments'), 5, 1);
 		
 	}
+
+	//Update the default values passed to us from the child class. These are filterable so they can be adjusted in themes / other plugins
+	public function filter_default_class_arguments(){
+
+
+		//filterable post type values: add_action('{$nameOfClass}_post_type_args', 'functionName); 
+		$this->post_type_args = apply_filters(get_called_class() . '_post_type_args', $this->post_type_args);
+		//filterable taxonomy arguments: add_action('{$nameOfClass}_taxonomy_args', 'functionName); 
+		$this->taxonomy_args = apply_filters(get_called_class() . '_taxonomy_args', $this->taxonomy_args);
+		//filterable taxonomy field arguments: add_action('{$nameOfClass}_taxonomy_field_args', 'functionName); 
+		$this->taxonomy_field_args = apply_filters(get_called_class() . '_taxonomy_field_args', $this->taxonomy_field_args);
+		//filterable meta box args: add_action('{$nameOfClass}_meta_box_args', 'functionName); 
+		$this->meta_box_args = apply_filters(get_called_class() . '_meta_box_args', $this->meta_box_args);
+		//filterable meta field args: add_action('{$nameOfClass}_meta_field_args', 'functionName); 
+		$this->meta_field_args = apply_filters(get_called_class() . '_meta_field_args', $this->meta_field_args);
+		
+	}
+
 	
 	//property setters
 	public function set_post_type_args($post_type_args){
@@ -75,6 +99,8 @@
 	//register content type 
 	public function register_content_type(){
 		
+		
+		
 		if($this->post_type_args){
 			
 			//TODO: make this pretty. update values (such as labels or arguments)
@@ -83,11 +109,6 @@
 				
 				$current_post_type = get_post_type_object($this->post_type_args['post_type_name']);
 				
-				// echo '<pre>';
-				// var_dump($current_post_type);
-				// echo '</pre>';
- 				
-				// die();
 			}else{
 	
 				//Default labels for custom post type
@@ -95,7 +116,7 @@
 		            'name'               => $this->post_type_args['post_type_plural_name'],
 		            'singular_name'      => $this->post_type_args['post_type_single_name'],
 		            'menu_name'          => $this->post_type_args['post_type_plural_name'],
-		            'name_admin_bar'     => $this->post_type_args['post_type_plural_name'],
+		            'name_admin_bar'     => $this->post_type_args['post_type_single_name'],
 		            'add_new'            => 'Add New', 
 		            'add_new_item'       => 'Add New '. $this->post_type_args['post_type_single_name'], 
 		            'new_item'           => 'New ' . $this->post_type_args['post_type_single_name'],
@@ -228,6 +249,8 @@
 	public function add_extra_fields_to_taxonomy_new($taxonomy_name){
 			
 		$html = '';
+		
+		
 			
 		//if we have taxonomy meta fields to add
 		if($this->taxonomy_field_args){
@@ -251,7 +274,7 @@
 	public function add_extra_fields_to_taxonomy_edit($term, $taxonomy_name){
 	
 		$html = ''; 
-		
+
 		//if we have tax fields
 		if($this->taxonomy_field_args){
 			
@@ -277,6 +300,9 @@
 		$taxonomy_name = $taxonomy->taxonomy;
 		//type of field controls that save multiple values
 		$multi_value_fields = array('checkbox', 'upload-multi-image', 'related-posts');
+		
+		//filterable taxonomy field arguments
+		$this->taxonomy_field_args = apply_filters(get_called_class() . '_taxonomy_field_args', $this->taxonomy_field_args);
 		
 		//if we have tax fields
 		if($this->taxonomy_field_args){
@@ -307,10 +333,12 @@
 		
 	}
 	
+	//TODO: Create ability to register admin columns for post meta
 	//register custom admin columns
 	public function register_admin_columns(){
 		
 	}
+	//TODO: Create output for admin columns
 	//output custom admin columns
 	public function manage_admin_columns(){
 		
@@ -354,7 +382,7 @@
 	public function meta_box_output($post, $args){
 			
 		$html = '';
-		
+
 		//output nonce
 		wp_nonce_field($this->post_type_args['post_type_name'] . '_nonce', $this->post_type_args['post_type_name'] . '_nonce_field'); 
 		
@@ -855,11 +883,13 @@
 		return $html;	
 	}
 	
+	//TODO: Come back to
 	//register shortcodes for post type
 	public function register_shortcodes(){
 		
 	}
 	
+	//TODO: Come back to
 	//output for the shortcodes
 	public function shortcode_output(){
 		
@@ -867,6 +897,12 @@
 	
 	//called when saving post type
 	public function save_post($post_id){
+		
+		//filterable post type args
+		$this->post_type_args = apply_filters(get_called_class() . '_post_type_args', $this->post_type_args);
+		//filterable meta field args
+		$this->meta_field_args = apply_filters(get_called_class() . '_meta_field_args', $this->meta_field_args);
+		
 		
 		//check set nonce
 		if(!isset($_POST[$this->post_type_args['post_type_name'] . '_nonce_field'])){
